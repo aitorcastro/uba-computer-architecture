@@ -1,4 +1,5 @@
 extern malloc
+extern strcpy
 
 section .rodata
 ; Acá se pueden poner todas las máscaras y datos que necesiten para el ejercicio
@@ -28,7 +29,7 @@ EJERCICIO_2B_HECHO: db TRUE ; Cambiar por `TRUE` para correr los tests.
 ; Funciones a implementar:
 ;   - modificarUnidad
 global EJERCICIO_2C_HECHO
-EJERCICIO_2C_HECHO: db FALSE ; Cambiar por `TRUE` para correr los tests.
+EJERCICIO_2C_HECHO: db TRUE ; Cambiar por `TRUE` para correr los tests.
 
 ;########### ESTOS SON LOS OFFSETS Y TAMAÑO DE LOS STRUCTS
 ; Completar las definiciones (serán revisadas por ABI enforcer):
@@ -242,8 +243,99 @@ contarCombustibleAsignado:
 
 global modificarUnidad
 modificarUnidad:
-	; r/m64 = mapa_t           mapa
-	; r/m8  = uint8_t          x
-	; r/m8  = uint8_t          y
-	; r/m64 = void*            fun_modificar(attackunit_t*)
+	; rdi = mapa_t           mapa
+	; sil  = uint8_t          x
+	; dl  = uint8_t          y
+	; rcx = void*            fun_modificar(attackunit_t*)
+
+	;--PROLOGO INICIO--
+	push rbp
+	mov rbp, rsp
+	push r12
+	push r13
+	push r14
+	push r15
+
+	;--PROLOGO FIN--
+
+	;--guardo parametros en no volatiles--
+	;r12 = fun
+	;r13 = pUnidadAModificar = mapa[x][y]
+	;r14 = mapa + (x*255+y)*8
+	;--
+	mov r12, rcx ;r12 = fun
+
+	;para lo otro no necesito los tres, solo la posicion en si
+	;calculo: mapa + (x*255+j)*8
+	movzx r14, sil;r14 = x
+	imul r14, 255;r14 = x*255
+	movzx r9, dl;r9 = y
+	add r14, r9 ;r14 = x*255+y
+	shl r14, 3;r14 = (x*255+y)*8
+	add r14, rdi ;r14 = mapa + (x*255+y)*8
+
+	;cargo en r13 el puntero de la posicion que me importa
+	mov r13, [r14] ; r13 = pUnidadAModificar mapa[x][y]
+
+	;--me fijo que no sea null
+	cmp r13, 0
+	je .termine
+
+	;--me fijo si es una unidad compartida
+	movzx r8, byte [r13 + 14] ;r8 = pUnidadAModificar->references
+	cmp r8, 1
+	jle .modificar
+
+	;--si es compartida
+		;-decremento las referencias
+		dec r8
+		mov byte [r13 + 14], r8b
+
+		;-aloco memoria para la nueva unidad
+		mov rdi, 16
+		call malloc 
+		mov r15, rax ;r15 = pNuevaUnidad
+
+		;-copio los datos a la nueva unidad
+		;1) copio clase
+		lea rdi, [r15]
+		lea rsi, [r13]
+		call strcpy ;clase listo
+		;2) copio combustible
+		movzx r8, word [r13 + 12]
+		mov word [r15 + 12], r8w ;combustible listo
+		;3) modifico referencias
+		mov byte [r15 + 14], 1
+
+		;-la modifico
+		mov rdi, r15
+		call r12
+
+		;-modifico el mapa
+		mov qword [r14], r15
+
+		jmp .termine
+
+	.modificar:
+	mov rdi, r13
+	call r12 ;fun(pUnidadAModificar)
+
+	.termine:
+	;--EPIlOGO INICIO--
+	pop r15
+	pop r14
+	pop r13
+	pop r12
+	pop rbp
+	;--EPILOGO FIN--
 	ret
+
+	;r12 = fun
+	;r13 = pUnidadAModificar = mapa[x][y]
+	;r14 = mapa + (x*255+y)*8
+	;r15 = pNuevaUnidad
+
+	; ATTACKUNIT_CLASE EQU 0
+	; ATTACKUNIT_COMBUSTIBLE EQU 12
+	; ATTACKUNIT_REFERENCES EQU 14
+	; ATTACKUNIT_SIZE EQU 16

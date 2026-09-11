@@ -26,7 +26,7 @@ bool EJERCICIO_2B_HECHO = true;
  * Funciones a implementar:
  *   - modificarUnidad
  */
-bool EJERCICIO_2C_HECHO = false;
+bool EJERCICIO_2C_HECHO = true;
 
 /**
  * OPCIONAL: implementar en C
@@ -54,6 +54,7 @@ void optimizar(mapa_t mapa, attackunit_t* compartida, uint32_t (*fun_hash)(attac
                     mapa[fila][columna] = compartida;
                     //incremento las referencias de la compartida
                     compartida->references++;
+                    free(pUnidadActual);
                 }
             }
 
@@ -93,4 +94,31 @@ uint32_t contarCombustibleAsignado(mapa_t mapa, uint16_t (*fun_combustible)(char
  * OPCIONAL: implementar en C
  */
 void modificarUnidad(mapa_t mapa, uint8_t x, uint8_t y, void (*fun_modificar)(attackunit_t*)) {
+    //busco unidad en el mapa
+    attackunit_t* pUnidadAModificar = mapa[x][y];
+
+    //me fijo si existe
+    if (pUnidadAModificar != NULL) {
+        //me fijo si es una unidad compartida
+        if(pUnidadAModificar->references > 1) {
+            //si es compartida
+            //-decremento las referencias
+            pUnidadAModificar->references = pUnidadAModificar->references -1;
+            //-aloco memoria para la nueva unidad
+            attackunit_t* pNuevaUnidad = malloc(sizeof(attackunit_t));
+            //-copio los datos a la nueva unidad
+            strcpy(pNuevaUnidad->clase, pUnidadAModificar->clase);
+            pNuevaUnidad->combustible = pUnidadAModificar->combustible;
+            pNuevaUnidad->references = 1;
+            //-la modifico
+            fun_modificar(pNuevaUnidad);
+            //-modifico el mapa
+            mapa[x][y] = pNuevaUnidad;
+        }
+        else if(pUnidadAModificar->references == 1) {
+            //si no es compartida solo la modifico
+            fun_modificar(pUnidadAModificar);
+        }
+    }
+    
 }
