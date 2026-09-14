@@ -131,6 +131,7 @@ xor r15, r15 ;i = 0
                 mov word[rbx + CASO_ESTADO_OFFSET], 2
             .chequearRBO:
             ;SI NO, SI ESIGUAL A "RBO"
+            lea rdi, [rbx + CASO_CATEGORIA_OFFSET] ;rdi = categoria
             mov dword[rbp-24], 'RBO' 
             lea rsi, [rbp-24]
             mov rdx, 4
