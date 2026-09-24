@@ -38,7 +38,15 @@ bool EJERCICIO_3_HECHO = true;
  *   - Cualquier otro valor es `true`
  */
 bool hay_accion_que_toque(accion_t* accion, char* nombre) {
-	return false;
+	//recorro acciones
+	int res = 0;
+	while (accion != NULL) {
+		char* nombreCarta = accion->destino->nombre;
+		if(strcmp(nombre, nombreCarta) == 0) {res = 1;}
+		accion = accion->siguiente;
+	}
+	
+	return res;
 }
 
 /**
@@ -62,7 +70,36 @@ bool hay_accion_que_toque(accion_t* accion, char* nombre) {
  * la primera acción, segundo la segunda acción, etc). Las acciones asumen este
  * orden de ejecución.
  */
+bool estaEnElTablero(carta_t* carta, carta_t* campo[ALTO_CAMPO][ANCHO_CAMPO]) {
+	for(int fila = 0; fila < ALTO_CAMPO; fila ++) {
+		for(int columna = 0; columna < ANCHO_CAMPO; columna++) {
+			if(campo[fila][columna] == carta) {
+				return true;
+			}
+		}
+	}
+	return false;
+
+}
+
 void invocar_acciones(accion_t* accion, tablero_t* tablero) {
+
+	//recorrer acciones
+	while (accion != NULL) {
+		//busco carta de la accion
+		carta_t* cartaAccion = accion->destino;
+		//me fijo que este en el tablero
+		if(cartaAccion != NULL && cartaAccion->en_juego) {
+			//si esta y esta en juego la invoco
+			accion->invocar(tablero, cartaAccion);
+			//si tiene cero puntos de vida despues, la marco fuera de jeugo
+			if(cartaAccion->vida == 0) {
+				cartaAccion->en_juego = false;
+			}
+		}
+		accion = accion->siguiente;
+	}
+
 }
 
 /**
@@ -83,5 +120,21 @@ void invocar_acciones(accion_t* accion, tablero_t* tablero) {
  * como parámetro.
  */
 void contar_cartas(tablero_t* tablero, uint32_t* cant_rojas, uint32_t* cant_azules) {
-	*cant_rojas = *cant_azules = 0;
+	//recorro tablero
+	*cant_azules = *cant_rojas = 0;
+	for(int fila = 0; fila < ALTO_CAMPO; fila ++){
+		for(int col = 0; col < ANCHO_CAMPO; col++) {
+			carta_t* cartaActual = tablero->campo[fila][col];
+			//verificar diferente a null
+			if(cartaActual != NULL) {
+				//chequear azul
+				if(cartaActual->jugador == JUGADOR_AZUL) {
+					(*cant_azules) ++;
+				} else if(cartaActual->jugador == JUGADOR_ROJO) {
+					(*cant_rojas) ++;
+				}
+				
+			}
+		}
+	}
 }
