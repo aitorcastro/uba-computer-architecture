@@ -19,7 +19,7 @@ TRUE  EQU 1
 ; Funciones a implementar:
 ;   - init_fantastruco_dir
 global EJERCICIO_1A_HECHO
-EJERCICIO_1A_HECHO: db FALSE ; Cambiar por `TRUE` para correr los tests.
+EJERCICIO_1A_HECHO: db TRUE ; Cambiar por `TRUE` para correr los tests.
 
 ; Marca el ejercicio 1B como hecho (`true`) o pendiente (`false`).
 ;
@@ -30,15 +30,15 @@ EJERCICIO_1B_HECHO: db FALSE ; Cambiar por `TRUE` para correr los tests.
 
 ;########### ESTOS SON LOS OFFSETS Y TAMAÑO DE LOS STRUCTS
 ; Completar las definiciones (serán revisadas por ABI enforcer):
-DIRENTRY_NAME_OFFSET EQU ??
-DIRENTRY_PTR_OFFSET EQU ??
-DIRENTRY_SIZE EQU ??
+DIRENTRY_NAME_OFFSET EQU 0
+DIRENTRY_PTR_OFFSET EQU 16
+DIRENTRY_SIZE EQU 24
 
-FANTASTRUCO_DIR_OFFSET EQU ??
-FANTASTRUCO_ENTRIES_OFFSET EQU ??
-FANTASTRUCO_ARCHETYPE_OFFSET EQU ??
-FANTASTRUCO_FACEUP_OFFSET EQU ??
-FANTASTRUCO_SIZE EQU ??
+FANTASTRUCO_DIR_OFFSET EQU 0
+FANTASTRUCO_ENTRIES_OFFSET EQU 8
+FANTASTRUCO_ARCHETYPE_OFFSET EQU 16
+FANTASTRUCO_FACEUP_OFFSET EQU 24
+FANTASTRUCO_SIZE EQU 32
 
 ; void init_fantastruco_dir(fantastruco_t* card);
 global init_fantastruco_dir
@@ -47,9 +47,34 @@ init_fantastruco_dir:
 	; ubicación según la convención de llamada. Prestá atención a qué
 	; valores son de 64 bits y qué valores son de 32 bits o 8 bits.
 	;
-	; r/m64 = fantastruco_t*     card
+	; rdi = fantastruco_t*     card
+	;-PROLOGO INI------
+;--Alinear la pila y guardar rbp
+push rbp
+mov rbp, rsp
 
-	ret ;No te olvides el ret!
+;--Preservar registros no-volatiles
+push r12
+push r13
+;-PROLOGO FIN------
+
+;-CUERPO------
+;guardo parametro
+mov r12, rdi
+mov rdi, 16
+call malloc ;rax = direccion campo __dir
+
+	;entrada sleep
+	
+
+;-EPILOGO INI------
+;-restaurar registros no-volatiles
+
+pop r13
+pop r12
+;-restaurar rbp
+pop rbp
+    ret
 
 ; fantastruco_t* summon_fantastruco();
 global summon_fantastruco

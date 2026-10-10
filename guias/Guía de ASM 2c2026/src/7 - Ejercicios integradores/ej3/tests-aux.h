@@ -1,7 +1,7 @@
 #ifndef TEST_H
 #define TEST_H
 
-#include "../test_utils/test-utils.h"
+#include "../../test_utils/test-utils.h"
 #include "./ejs.h"
 
 

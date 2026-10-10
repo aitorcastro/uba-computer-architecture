@@ -573,3 +573,33 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 }
+
+void contar_casos_por_nivel(caso_t* arreglo_casos, int largo, int* contadores) {    
+    
+    for (int i = 0; i < largo; i++) {
+        //agarro el caso
+        caso_t casoActual = arreglo_casos[i];
+        //agarro el cliente
+        usuario_t* usuarioActual = casoActual.usuario;
+        //agarro el nivel
+        uint32_t nivel = usuarioActual->nivel;
+
+        switch (nivel)
+        {
+        case 0:
+            contadores[0] += 1;
+            break;
+
+        case 1:
+            contadores[1] += 1;
+            break;
+
+        case 2:
+            contadores[2] += 1;
+            break;
+        
+        default:
+            break;
+        }
+    }
+}
