@@ -63,6 +63,12 @@ ALIGN 16
 mult_100_qword:
     dq 100, 0 
 
+;CORRECCION: mascara para usar solo 10 bytes y limpiar los 4 restantes
+ALIGN 16
+mask_10_bytes:
+	times 10 db 0xFF
+	times 6  db 0x00
+
 section .text
 
 global ej1_sample
@@ -100,10 +106,8 @@ ej1_sample:
 ;prologo
 push rbp 
 mov rbp, rsp; [rbp] = rbp
-push r12
-push r13
 
-mov r13, [rbp + 16] ;r13 = freqB
+mov rax, [rbp + 16] ;rax = freqB
 mov r11, [rbp + 24] ;r11 = freq b start
 
 ;multiplico todos los starts y lens por 2 para iterar de a bytes
@@ -135,12 +139,12 @@ jge .finCiclo
 	jne .bIndexOk
 	xor r11, r11
 	.bIndexOk:
-	movdqu xmm1, [r13 + r11]
+	movdqu xmm1, [rax + r11]
 	add r11, 16
 
 	;sumo en xmm0
 	paddw xmm0, xmm1
-	;divido por 2 (shr 2)
+	;divido por 2 (shr 1)
 	psraw xmm0, 1
 
 	;guardo en el buffer
@@ -153,8 +157,6 @@ jmp .ciclo
 .finCiclo:
 
 ;epilogo
-pop r13
-pop r12
 pop rbp
 ret
 
@@ -243,6 +245,9 @@ ej3_remove_duplicates:
 	;senial de referencia
 	mov r9b, ' '
 
+	;CORRECCION: cargo la mascara de ceros a un registro en vez de leerla de memoria en cada iteración
+	movdqa xmm2, [c]
+
 	;RECORRO DETECTED DE A 16 ELEMENTOS (16 BYTES)
 	xor r10, r10 ;i = 0
 	.ciclo:
@@ -256,7 +261,7 @@ ej3_remove_duplicates:
 		;COMPARO SI SON TODOS IGUALES
 		;agarro el primer byte de xmm0 y lo replico en todo xmm1
 		movdqa  xmm1, xmm0 
-		pshufb  xmm1, [c] ;uso una mascara de ceros para que todos  los indices que use pshufb sean 0
+		pshufb  xmm1, xmm2 ;uso una mascara de ceros para que todos  los indices que use pshufb sean 0
 
 		;chequeo si son iguales
 		pcmpeqb xmm0, xmm1
@@ -304,22 +309,35 @@ ej4_get_numbers:
 	;recorro los numeros
 	xor r10, r10 ;i = 0
 	imul rdi, 10
+
+	;CORRECCION: constantes fuera del ciclo
+	movdqa xmm2, [ceros]
+	movdqa xmm3, [espacios]
+	movdqa xmm4, [mult_10_1]
+	movdqa xmm5, [mult_100_1]
+	movdqa xmm6, [mult_10000_1]
+	movdqa xmm7, [mult_100_qword]
+	movdqa xmm8, [mask_10_bytes]
+
 	.ciclo:
 	;i >= largo?
 	cmp r10, rdi
 	jge .finCiclo
 		
 		;CONVIERTO DE ASCCI A DIJITOS
-		;leo un bloque de 10 numeros (ignoro lso ultimos 4)
+		;leo un bloque de 10 numeros
 		movdqu xmm0, [rsi + r10]
+		
+		;CORRECCION: limpio los ultimos 6 bytes
+		pand   xmm0, xmm8
 
 		;les resto '0'
-		psubb xmm0, [ceros]
+		psubb xmm0, xmm2
 
 		;normalizo los espacios
 		movdqa xmm1, xmm0
-		pcmpeqb xmm1, [espacios]; xmm1 = 0xFF donde es espacio, 0x00 donde es num
-		pand xmm1, [espacios] ; xmm1 = -16 donde es espacio, 0 donde es num
+		pcmpeqb xmm1, xmm3; xmm1 = 0xFF donde es espacio, 0x00 donde es num
+		pand xmm1, xmm3 ; xmm1 = -16 donde es espacio, 0 donde es num
 		psubb xmm0, xmm1 ;resto 16 a los espacios y dejo igual los num
 		
 		;xmm0 tiene los diez dijitos limpios
@@ -333,7 +351,7 @@ ej4_get_numbers:
 		;- par[2] = (d4*10+d5), 
 		;- par[3] = (d6*10+d7),
 		;- par[4] = (d8*10+d9)
-		pmaddubsw xmm0, [mult_10_1] ; xmm0 = [par[0], par[1], par[2], par[3], par[4], 0, 0, 0 ]
+		pmaddubsw xmm0, xmm4 ; xmm0 = [par[0], par[1], par[2], par[3], par[4], 0, 0, 0 ]
 
 		;junto en dos bloques de 4 y uno de 2 donde: 
 		;	bloque_i = (d_i * 10 + d_i+1) * 100 + (d_i+2 * 10 + d_i+3)
@@ -342,10 +360,10 @@ ej4_get_numbers:
 		;- bloque[0] = par[0]*100 + par[1], 
 		;- bloque[1] = par[2]*100 + par[3], 
 		;- bloque[2] = par[3]
-		pmaddwd xmm0, [mult_100_1] ; xmm0 = [bloque[0], bloque[1], bloque[2], 0, 0, 0, 0, 0]
+		pmaddwd xmm0, xmm5 ; xmm0 = [bloque[0], bloque[1], bloque[2], 0, 0, 0, 0, 0]
 
 		;multiplicamos bloque[0] por 10000 = bloque[0]'
-		pmulld xmm0, [mult_10000_1] ;xmm0 = [bloque[0]', bloque[1], bloque[2], 0, 0, 0, 0, 0]
+		pmulld xmm0, xmm6 ;xmm0 = [bloque[0]', bloque[1], bloque[2], 0, 0, 0, 0, 0]
 		
 		;sumo bloque[0]' y bloque[1]
 		phaddd xmm0, xmm0 ;xmm0 = [(bloque[0]' + bloque[1]), bloque[2], 0, 0, 0, 0, 0]
@@ -355,7 +373,7 @@ ej4_get_numbers:
 		psrlq xmm1, 32
 
 		;uso pmuldq para multiplicar los 32 bits mas bajos de xmm0 por 100 (bloque[0]' + bloque[1])*100 y los guarda en un qword en 64 bits
-		pmuludq xmm0, [mult_100_qword]
+		pmuludq xmm0, xmm7
 
 		;ya tengo las dos partes en qwords entonces las sumo
 		paddq xmm0, xmm1

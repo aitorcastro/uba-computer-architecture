@@ -8,19 +8,14 @@ const bool ej_2_hecho = true;
 const bool ej_3_hecho = true;
 const bool ej_4_hecho = true;
 
-void ej1_sample(size_t buf_len, int16_t buf[buf_len], size_t freq_a_len, int16_t freq_a[freq_a_len], size_t a_start, size_t freq_b_len, int16_t freq_b[freq_b_len], size_t b_start) {
-	//recorro el buffer
+void ej1_sample(size_t buf_len, int16_t buf[buf_len],
+                size_t freq_a_len, int16_t freq_a[freq_a_len], size_t a_start,
+                size_t freq_b_len, int16_t freq_b[freq_b_len], size_t b_start) {
 	for (size_t i = 0; i < buf_len; i++) {
-		//creo indices para la frecuencia a y b
-		//como el buffer es mas largo que la onda, uso mod para volver al principio
 		size_t index_a = (i + a_start) % freq_a_len;
 		size_t index_b = (i + b_start) % freq_b_len;
-
-		//busco las muestras correspondientes  este momento/indice
 		int16_t sample_a = freq_a[index_a];
 		int16_t sample_b = freq_b[index_b];
-
-		//completo el buffer con la formula dada
 		buf[i] = (sample_a + sample_b) / 2;
 	}
 }
